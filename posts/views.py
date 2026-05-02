@@ -14,3 +14,7 @@ def post(request, id):
     return render(request, "base.html", {"post": post})
 
 
+def posts(request):
+    posts = get_posts_filter_by_rate(2)
+
+    return render(request, template_name="base.html", context={"posts": posts})
