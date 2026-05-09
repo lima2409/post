@@ -19,17 +19,29 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path
+from posts.views import create_category
 
-from posts.views import get_posts_by_category, home, post, posts, post_list
+from posts.views import (
+    create_post,
+    delete_post,
+    edit_post,
+    get_post,
+    get_posts_by_category,
+    home,
+    post,
+)
 
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("home/", home),
-    path("posts/", posts, name="posts"),
-    path("posts/<int:id>/", post, name="post"),
+    path("", home, name="home"),
+    path("posts/", post, name="posts"),
+    path("posts/<int:id>/", get_post, name="post"),
     path("posts/category/<int:id>/", get_posts_by_category, name="category"),
-    path('', post_list, name='post_list'),
+    path("posts/create", create_post, name="create_post"),
+    path("posts/<int:pk>/edit/", edit_post, name="edit_post"),
+    path("posts/<int:id>/delete", delete_post, name="delete_post"),
+    path("category/create/", create_category, name="create_category"),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

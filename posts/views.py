@@ -1,33 +1,114 @@
 # Create your views here.
-from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, render
-from posts.models import Post
+
+from django.http import HttpRequest
+from django.shortcuts import get_object_or_404, redirect, render
+
+from posts.form import PostForm, TestForm
+from posts.models import Category, Post
 from posts.posts import get_posts_filter_by_rate
 
+from .form import CategoryForm
 
 def home(request):
-    post = Post.objects.get(id=1)
-    return HttpResponse(f"<h1>Text</h1>  ---- {post.title} <br> {post.content}")
+    return render(request, "base.html")
 
 
-def post(request, id):
-    post = Post.objects.get(id=id)
-    return render(request, "base.html", {"post": post})
-
-def posts(request):
+def post(request):
     posts = get_posts_filter_by_rate(2)
+    return render(request, template_name="posts/posts.html", context={"posts": posts})
 
-    return render(request, template_name="base.html", context={"posts": posts})
+
+def get_post(request, id):
+    post = get_object_or_404(Post, id=id)
+
+    return render(request, template_name="posts/post.html", context={"post": post})
+
 
 def get_posts_by_category(request, id):
     posts = Post.objects.filter(category_id=id)
 
     return render(request, template_name="posts/posts.html", context={"posts": posts})
 
-def post_list(request):
-    posts = Post.objects.filter(is_published=True, rating__gt=5)
 
-    return render(request, 'posts/post_list.html', {
-        'posts': posts
-    })
+def create_post(request: HttpRequest):
 
+    if request.method == "POST":
+        form = TestForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            cleaned_data = form.cleaned_data
+
+            Post.objects.create(
+                title=cleaned_data["title"],
+                content=cleaned_data["content"],
+                rate=cleaned_data["rate"],
+                image=cleaned_data["image"],
+                category_id=cleaned_data["category"],
+            )
+
+            return redirect("posts")
+
+        return render(request, "posts/create_post.html", context={"error": form.errors})
+
+    form = PostForm()
+
+    categories = Category.objects.all()
+
+    return render(
+        request,
+        "posts/create_post.html",
+        context={"form": form, "categories": categories},
+    )
+
+
+def edit_post(request: HttpRequest, pk):
+    post = get_object_or_404(Post, id=pk)
+    categories = Category.objects.all()
+    if request.method == "POST":
+        form = TestForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            cleaned_data = form.cleaned_data
+
+            post.title = cleaned_data["title"]
+            post.content = cleaned_data["content"]
+            post.rate = cleaned_data["rate"]
+            if cleaned_data.get("image"):
+                post.image = cleaned_data["image"]
+            post.category_id = cleaned_data["category"]
+
+            post.save()
+
+            return redirect("post", id=post.pk)
+        return render(
+            request,
+            "posts/edit_post.html",
+            context={"post": post, "categories": categories, "errors": form.errors},
+        )
+
+    return render(
+        request,
+        "posts/edit_post.html",
+        context={"post": post, "categories": categories},
+    )
+
+
+def delete_post(request: HttpRequest, id):
+
+    if request.method == "GET":
+        posts = get_object_or_404(Post, id=id)
+
+        posts.delete()
+
+        return redirect("posts")
+    
+def create_category(request):
+    if request.method == "POST":
+        form = CategoryForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect("posts")
+    else:
+        form = CategoryForm()
+
+    return render(request, "posts/create_category.html", {"form": form})
